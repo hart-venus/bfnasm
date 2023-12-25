@@ -47,6 +47,17 @@ _start:
     lea rsi, buffer ; load address of buffer into rsi (our instruction pointer)
     lea rdi, tape ; load address of tape into rdi (our data pointer)
     readCycle:
+        ; first, let's print the current value under the instruction pointer
+        ;push rsi
+        ;push rdi
+        ;mov rax, 1
+        ;mov rdi, 1
+        ;mov rdx, 1
+        ;syscall
+        ;pop rdi
+        ;pop rsi
+
+
         cmp byte [rsi], 0 ; check if we've reached the end of the file
         je exit
         cmp byte [rsi], '+' ; increment value at data pointer
@@ -59,7 +70,10 @@ _start:
         je prevData
         cmp byte [rsi], '.' ; print value at data pointer
         je print
-
+        cmp byte [rsi], '[' ; start loop
+        je startLoop
+        cmp byte [rsi], ']' ; end loop
+        je endLoop
         ; if we didn't match any of the above, we can ignore the character
         jmp next
 
@@ -98,6 +112,44 @@ _start:
             pop rdi 
             pop rsi 
             jmp next
+        startLoop:
+            push rsi ; save instruction pointer
+            cmp byte [rdi], 0 ; check if value at data pointer is 0
+
+            je goOutside ; if it's not 0, we can continue
+            jmp next ; continue
+
+            goOutside:
+            ; if it is 0, we need to find the matching ] to get to it
+            mov rcx, 1 ; counter for number of [ we've seen
+
+            findEndLoop:
+                inc rsi
+                cmp byte [rsi], '['
+                jne notNestedLoop
+                nestedLoop:
+                    inc rcx
+                    jmp findEndLoop
+                notNestedLoop: 
+                    cmp byte [rsi], ']'
+                    jne findEndLoop
+                found:
+                    dec rcx
+                    cmp rcx, 0
+                    jne findEndLoop
+                    jmp readCycle
+
+        endLoop:
+            cmp byte [rdi], 0 ; check if value at data pointer is 0
+            jne getOut ; if it is 0, we can continue
+
+            pop rcx ; throw away instruction pointer
+            jmp next ; continue
+
+            getOut:
+                ; if it's not 0, we need to find the matching [
+                pop rsi ; restore instruction pointer
+                jmp readCycle ; continue
         next:
             inc rsi
             jmp readCycle
