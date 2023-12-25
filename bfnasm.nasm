@@ -6,13 +6,12 @@ section .data
     badFileMsg db "Error: could not open file", 10, 0
     badFileMsgLen equ $ - badFileMsg
 
-    defFilename db "bfnasm/README.md", 0
-
 section .bss 
     fd resq 1 ; file descriptor
     charbuf resb 1 ; buffer for reading one character at a time
     buffer resb bufferSize
     tape resb tapeSize
+
 section .text
     global _start
 
@@ -32,7 +31,7 @@ _start:
 
     ; save file descriptor
     mov [fd], rax
-    
+
     ; dump file contents into buffer
     mov rax, 0
     mov rdi, [fd] ; file descriptor
@@ -48,16 +47,6 @@ _start:
     lea rsi, buffer ; load address of buffer into rsi (our instruction pointer)
     lea rdi, tape ; load address of tape into rdi (our data pointer)
     readCycle:
-        ; first, let's print the current value under the instruction pointer
-        ;push rsi
-        ;push rdi
-        ;mov rax, 1
-        ;mov rdi, 1
-        ;mov rdx, 1
-        ;syscall
-        ;pop rdi
-        ;pop rsi
-
 
         cmp byte [rsi], 0 ; check if we've reached the end of the file
         je exit
