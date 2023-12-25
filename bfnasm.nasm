@@ -49,9 +49,58 @@ _start:
     readCycle:
         cmp byte [rsi], 0 ; check if we've reached the end of the file
         je exit
+        cmp byte [rsi], '+' ; increment value at data pointer
+        je plus
+        cmp byte [rsi], '-' ; decrement value at data pointer
+        je minus
+        cmp byte [rsi], '>' ; increment data pointer
+        je nextData
+        cmp byte [rsi], '<' ; decrement data pointer
+        je prevData
+        cmp byte [rsi], '.' ; print value at data pointer
+        je print
 
-        inc rsi ; move to next character
-    jmp readCycle
+        ; if we didn't match any of the above, we can ignore the character
+        jmp next
+
+        plus:
+            inc byte [rdi]
+            jmp next
+        minus:
+            dec byte [rdi]
+            jmp next
+        nextData:
+            inc rdi 
+            ; check if we've reached the end of the tape
+            cmp rdi, tape + tapeSize
+            jne next
+            ; if we've reached the end of the tape, we need to wrap around
+            mov rdi, tape
+            jmp next
+        prevData:
+            dec rdi
+            ; check if we've reached the beginning of the tape
+            cmp rdi, tape-1
+            jne next
+            ; if we've reached the beginning of the tape, we need to wrap around
+            mov rdi, tape + tapeSize - 1
+            jmp next
+        print:
+            push rsi 
+            push rdi 
+            
+            mov rax, 1
+            mov rsi, rdi
+            mov rdi, 1
+            mov rdx, 1
+            syscall
+
+            pop rdi 
+            pop rsi 
+            jmp next
+        next:
+            inc rsi
+            jmp readCycle
 
     noParams:
         push noParamsMsg
