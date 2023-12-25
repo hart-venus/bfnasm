@@ -1,5 +1,6 @@
 section .data
     bufferSize equ 104857600 ; 100 MB
+    tapeSize equ 30000 ; 30,000 cells
     noParamsMsg db "Usage: ./bfnasm <filename>", 10, 0
     noParamsMsgLen equ $ - noParamsMsg
     badFileMsg db "Error: could not open file", 10, 0
@@ -10,7 +11,7 @@ section .data
 section .bss 
     fd resq 1 ; file descriptor
     buffer resb bufferSize
-
+    tape resb tapeSize
 section .text
     global _start
 
@@ -28,7 +29,29 @@ _start:
     cmp rax, 0 ; check if file opened successfully
     jl badFile
 
-    jmp exit
+    ; save file descriptor
+    mov [fd], rax
+    
+    ; dump file contents into buffer
+    mov rax, 0
+    mov rdi, [fd] ; file descriptor
+    mov rsi, buffer
+    mov rdx, bufferSize
+    syscall
+
+    ; close file
+    mov rax, 3
+    mov rdi, [fd]
+    syscall
+
+    lea rsi, buffer ; load address of buffer into rsi (our instruction pointer)
+    lea rdi, tape ; load address of tape into rdi (our data pointer)
+    readCycle:
+        cmp byte [rsi], 0 ; check if we've reached the end of the file
+        je exit
+
+        inc rsi ; move to next character
+    jmp readCycle
 
     noParams:
         push noParamsMsg
