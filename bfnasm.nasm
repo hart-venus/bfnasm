@@ -10,6 +10,7 @@ section .data
 
 section .bss 
     fd resq 1 ; file descriptor
+    charbuf resb 1 ; buffer for reading one character at a time
     buffer resb bufferSize
     tape resb tapeSize
 section .text
@@ -74,6 +75,8 @@ _start:
         je startLoop
         cmp byte [rsi], ']' ; end loop
         je endLoop
+        cmp byte [rsi], ',' ; read value into data pointer
+        je read
         ; if we didn't match any of the above, we can ignore the character
         jmp next
 
@@ -111,6 +114,18 @@ _start:
 
             pop rdi 
             pop rsi 
+            jmp next
+        read:
+            push rdi
+            push rsi 
+            mov rax, 0 
+            mov rsi, rdi
+            mov rdi, 0
+            mov rdx, 1
+            syscall
+            call flush ; flush stdin
+            pop rsi 
+            pop rdi 
             jmp next
         startLoop:
             push rsi ; save instruction pointer
@@ -188,3 +203,16 @@ printWithLen:
     mov edi, 1
     syscall
     ret
+
+flush:
+    .loop:
+        mov rax, 0 ; read syscall
+        mov rdi, 0 ; stdin
+        mov rsi, charbuf ; buffer
+        mov rdx, 1 ; read one character
+        syscall
+        cmp byte [charbuf], 10 ; check if we've reached a newline
+        je .done
+        jmp .loop
+    .done:
+        ret
